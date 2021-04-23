@@ -40,7 +40,6 @@ public:
   void addCNOT(int ctr, int trg);
   void compMatrix();
   void applyGates(Complex* state);
-  double expSigma(int trg, int sigma);
 }
   
 #endif 

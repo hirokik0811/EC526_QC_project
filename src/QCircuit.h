@@ -6,6 +6,7 @@
 #include <complex>
 #include <vector>
 #include <string>
+#include <bitset>  
 
 #include "sparseMat.h"
 #include "tensorProd.h"
@@ -205,7 +206,7 @@ public:
       sparseCSR gate; 
       // 2-qubit gate cases
       if (gateList.ops[gt] == "CNOT") {
-        int ctr = gateList.supports[0]; trg = gateList.supports[1]; 
+        int ctr = gateList.supports[gt][0], trg = gateList.supports[gt][1]; 
         Complex* val = new Complex[d]; // the values of the CNOT matrix
         int* row = new int[d+1]; 
         int* col = new int[d]; 
@@ -222,7 +223,7 @@ public:
       }
       // 1-qubit gate cases
       else {
-        int trg = gateList.supports[0];
+        int trg = gateList.supports[gt][0];
 
         // identities supporting other qubits
         int firstIdDim = (int)pow(2, trg-1), secondIdDim = (int)pow(2, nQubits-trg-1); 
@@ -233,32 +234,36 @@ public:
         firstId.row[firstIdDim] = firstIdDim; secondId.row[secondIdDim] = secondIdDim; 
         
         // the target 1-qubit gate
-        sparseCSR = oneGate(); 
-        switch (gateList.ops[gt]) {
-        case "U1" :
-          Complex* val = new Complex[4]; 
-          int* row = new int[3]; 
-          int* col = new int[4]; 
-          val[0] = exp(I*(-gateList.angles[0]/2.0-gateList.angles[1]/2.0))*cos(gateList.angles[2]/2.0);
-          val[1] = -exp(I*(-gateList.angles[0]/2.0+gateList.angles[1]/2.0))*sin(gateList.angles[2]/2.0);
-          val[2] = exp(I*(gateList.angles[0]/2.0-gateList.angles[1]/2.0))*sin(gateList.angles[2]/2.0);
-          val[3] = exp(I*(gateList.angles[0]/2.0+gateList.angles[1]/2.0))*cos(gateList.angles[2]/2.0);
+        sparseCSR oneGate; 
+	Complex* val; 
+        int* row; 
+        int* col;
+	  
+        switch (stoi(gateList.ops[gt])) {
+        case stoi("U1") :
+          val = new Complex[4]; 
+          row = new int[3]; 
+          col = new int[4]; 
+          val[0] = exp(I*(-gateList.angles[gt][0]/2.0-gateList.angles[gt][1]/2.0))*cos(gateList.angles[gt][2]/2.0);
+          val[1] = -exp(I*(-gateList.angles[gt][0]/2.0+gateList.angles[gt][1]/2.0))*sin(gateList.angles[gt][2]/2.0);
+          val[2] = exp(I*(gateList.angles[gt][0]/2.0-gateList.angles[gt][1]/2.0))*sin(gateList.angles[gt][2]/2.0);
+          val[3] = exp(I*(gateList.angles[gt][0]/2.0+gateList.angles[gt][1]/2.0))*cos(gateList.angles[gt][2]/2.0);
           col[0] = 0; col[1] = 1; col[2] = 0; col[3] = 1; 
           row[0] = 0; row[1] = 2; row[2] = 4; 
           oneGate.nVal = 4;
-        case "Phase" : 
-          Complex* val = new Complex[2]; 
-          int* row = new int[3]; 
-          int* col = new int[2]; 
-          val[0] = exp(I*gateList.angles[0]);
-          val[1] = exp(I*gateList.angles[0]);
+        case stoi("Phase") : 
+          val = new Complex[2]; 
+          row = new int[3]; 
+          col = new int[2]; 
+          val[0] = exp(I*gateList.angles[gt][0]);
+          val[1] = exp(I*gateList.angles[gt][0]);
           col[0] = 0; col[1] = 1;
           row[0] = 0; row[1] = 1; row[2] = 2; 
           oneGate.nVal = 2;
-        case "H" : 
-          Complex* val = new Complex[4]; 
-          int* row = new int[3]; 
-          int* col = new int[4]; 
+        case stoi("H") : 
+          val = new Complex[2]; 
+          row = new int[3]; 
+          col = new int[2]; 
           val[0] = 1/sqrt(2.0);
           val[1] = 1/sqrt(2.0);
           val[2] = 1/sqrt(2.0);
@@ -266,96 +271,96 @@ public:
           col[0] = 0; col[1] = 1; col[2] = 0; col[3] = 1;
           row[0] = 0; row[1] = 2; row[2] = 4; 
           oneGate.nVal = 4;
-        case "S" : 
-          Complex* val = new Complex[2]; 
-          int* row = new int[3]; 
-          int* col = new int[2]; 
+        case stoi("S") : 
+          val = new Complex[2]; 
+          row = new int[3]; 
+          col = new int[2]; 
           val[0] = 1.0;
           val[1] = I;
           col[0] = 0; col[1] = 1;
           row[0] = 0; row[1] = 1; row[2] = 2; 
           oneGate.nVal = 2;
-        case "Sdag" : 
-          Complex* val = new Complex[2]; 
-          int* row = new int[3]; 
-          int* col = new int[2]; 
+        case stoi("Sdag") : 
+          val = new Complex[2]; 
+          row = new int[3]; 
+          col = new int[2]; 
           val[0] = 1.0;
           val[1] = -I;
           col[0] = 0; col[1] = 1;
           row[0] = 0; row[1] = 1; row[2] = 2; 
           oneGate.nVal = 2;
-        case "T" : 
-          Complex* val = new Complex[2]; 
-          int* row = new int[3]; 
-          int* col = new int[2]; 
+        case stoi("T") : 
+          val = new Complex[2]; 
+          row = new int[3]; 
+          col = new int[2]; 
           val[0] = 1.0;
           val[1] = exp(I*PI/4.0);
           col[0] = 0; col[1] = 1;
           row[0] = 0; row[1] = 1; row[2] = 2; 
           oneGate.nVal = 2;
-        case "Tdag" : 
-          Complex* val = new Complex[2]; 
-          int* row = new int[3]; 
-          int* col = new int[2]; 
+        case stoi("Tdag") : 
+          val = new Complex[2]; 
+          row = new int[3]; 
+          col = new int[2]; 
           val[0] = 1.0;
           val[1] = exp(-I*PI/4.0);
           col[0] = 0; col[1] = 1;
           row[0] = 0; row[1] = 1; row[2] = 2; 
-        case "X" : 
-          Complex* val = new Complex[2]; 
-          int* row = new int[3]; 
-          int* col = new int[2]; 
+        case stoi("X") : 
+          val = new Complex[2]; 
+          row = new int[3]; 
+          col = new int[2]; 
           val[0] = 1.0;
           val[1] = 1.0;
           col[0] = 1; col[1] = 0;
           row[0] = 0; row[1] = 1; row[2] = 2; 
           oneGate.nVal = 2;
-        case "Y" : 
-          Complex* val = new Complex[2]; 
-          int* row = new int[3]; 
-          int* col = new int[2]; 
+        case stoi("Y") : 
+          val = new Complex[2]; 
+          row = new int[3]; 
+          col = new int[2]; 
           val[0] = -I;
           val[1] = I;
           col[0] = 1; col[1] = 0;
           row[0] = 0; row[1] = 1; row[2] = 2; 
           oneGate.nVal = 2;
-        case "Z" : 
-          Complex* val = new Complex[2]; 
-          int* row = new int[3]; 
-          int* col = new int[2]; 
+        case stoi("Z") : 
+          val = new Complex[2]; 
+          row = new int[3]; 
+          col = new int[2]; 
           val[0] = 1.0;
           val[1] = -1.0;
           col[0] = 0; col[1] = 1;
           row[0] = 0; row[1] = 1; row[2] = 2; 
           oneGate.nVal = 2;
-        case "RX" :
-          Complex* val = new Complex[4]; 
-          int* row = new int[3]; 
-          int* col = new int[4]; 
-          val[0] = cos(gateList.angles[0]/2.0);
-          val[1] = -I*sin(gateList.angles[0]/2.0);
-          val[2] = cos(gateList.angles[0]/2.0);
-          val[3] = -I*sin(gateList.angles[0]/2.0);
+        case stoi("RX") :
+          val = new Complex[4]; 
+          row = new int[3]; 
+          col = new int[4]; 
+          val[0] = cos(gateList.angles[gt][0]/2.0);
+          val[1] = -I*sin(gateList.angles[gt][0]/2.0);
+          val[2] = cos(gateList.angles[gt][0]/2.0);
+          val[3] = -I*sin(gateList.angles[gt][0]/2.0);
           col[0] = 0; col[1] = 1; col[2] = 0; col[3] = 1; 
           row[0] = 0; row[1] = 2; row[2] = 4; 
           oneGate.nVal = 2;
-        case "RY" :
-          Complex* val = new Complex[4]; 
-          int* row = new int[3]; 
-          int* col = new int[4]; 
-          val[0] = cos(gateList.angles[0]/2.0);
-          val[1] = sin(gateList.angles[0]/2.0);
-          val[2] = sin(gateList.angles[0]/2.0);
-          val[3] = cos(gateList.angles[0]/2.0);
+        case stoi("RY") :
+          val = new Complex[4]; 
+          row = new int[3]; 
+          col = new int[4]; 
+          val[0] = cos(gateList.angles[gt][0]/2.0);
+          val[1] = sin(gateList.angles[gt][0]/2.0);
+          val[2] = sin(gateList.angles[gt][0]/2.0);
+          val[3] = cos(gateList.angles[gt][0]/2.0);
           col[0] = 0; col[1] = 1; col[2] = 0; col[3] = 1; 
           row[0] = 0; row[1] = 2; row[2] = 4; 
           oneGate.nVal = 2;
-        case "RZ" : 
-          Complex* val = new Complex[2]; 
-          int* row = new int[3]; 
-          int* col = new int[2]; 
+        case stoi("RZ") : 
+          val = new Complex[4]; 
+          row = new int[3]; 
+          col = new int[4]; 
           val[0] = 1.0;
-          val[1] = exp(I*gateList.angles[0]/2.0);
+          val[1] = exp(I*gateList.angles[gt][0]/2.0);
           col[0] = 0; col[1] = 1;
           row[0] = 0; row[1] = 1; row[2] = 2; 
           oneGate.nVal = 2;
@@ -367,8 +372,8 @@ public:
         }  else {
           gate = oneGate.copy(); 
         } 
-        if (trg != nQubit-1) { 
-          sparseCSR prevRes = gate(); 
+        if (trg != nQubits-1) { 
+          sparseCSR prevRes = gate; 
           gate = tensorProdSparse(secondId, gate); 
           prevRes.~sparseCSR(); 
         }

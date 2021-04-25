@@ -5,8 +5,8 @@
 
 typedef std::complex<double> Complex;
 class sparseCSR { 
-Complex* val; int* row; int* col; int nVal; int nRows; int nCols; 
 public: 
+  Complex* val; int* row; int* col; int nVal; int nRows; int nCols; 
   sparseCSR() {} // empty object. user must allocate explicitly. 
   sparseCSR(int nvals, int dim) {  // square matrix
     nVal = nvals; 
@@ -29,9 +29,9 @@ public:
   }
   sparseCSR copy() {
     sparseCSR obj(nVal, nRows, nCols); 
-    copy(val, val + nVal, obj.val); 
-    copy(row, row + nRows+1, obj.row); 
-    copy(col, col + nVal, obj.col); 
+    std::copy(val, val + nVal, obj.val); 
+    std::copy(row, row + nRows+1, obj.row); 
+    std::copy(col, col + nVal, obj.col); 
     return obj; 
   }
 };

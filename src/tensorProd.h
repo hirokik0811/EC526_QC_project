@@ -44,10 +44,12 @@ QReg tensorProdDense(QReg a, QReg b) {
 	return prod;
 }
 
-
+/*
 sparseCSR* tensorProdSparse(sparseCSR* a, sparseCSR* b) {
 	sparseCSR* prod = new sparseCSR(a->nVal * b->nVal, a->nRows * b->nRows, a->nCols * b->nCols);
 	prod->row[0] = 0;
+
+
 
 	int p_val_ind = 0;
 	for (int r_a = 0; r_a < a->nRows; r_a++) {
@@ -62,11 +64,9 @@ sparseCSR* tensorProdSparse(sparseCSR* a, sparseCSR* b) {
 			prod->row[r_a * b->nRows + r_b + 1] = prod->row[r_a * b->nRows + r_b] + (a->row[r_a + 1] - a->row[r_a]) * (b->row[r_b + 1] - b->row[r_b]);
 		}
 	}
-
 	return prod;
 }
-
-/* ATTEMPT AT A PARALLIZED VERSION -- Doesn't work due to the complex inner loops. I don't think it is possible to simplify these loop bounds without a different sparse matrix representation.
+*/
 
 sparseCSR* tensorProdSparse(sparseCSR* a, sparseCSR* b) {
 
@@ -94,27 +94,34 @@ sparseCSR* tensorProdSparse(sparseCSR* a, sparseCSR* b) {
 	int* p_col = prod->col;
 	p_row[0] = 0;
 
+
+
 	int p_val_ind = 0;
+#pragma acc data copyout(p_val[0:p_nVal], p_row[0:p_nRows+1], p_col[0:p_nVal]) copyin(a_val[0:a_nVal], a_row[0:a_nRows+1], a_col[0:a_nVal], b_val[0:b_nVal], b_row[0:b_nRows+1], b_col[0:b_nVal], p_val_ind, a_nRows, b_nRows, b_nCols)
+#pragma acc region
+	{
 
-
-	#pragma acc data copy(p_val[0:p_nVal]) copy(p_row[0:p_nRows]) copy(p_col[0:p_nVal]) copyin(a_val[0:a_nVal]) copyin(a_row[0:a_nRows]) copyin(a_col[0:a_nVal]) copyin(b_val[0:b_nVal]) copyin(b_row[0:b_nRows]) copyin(b_col[0:b_nVal])
-	#pragma acc parallel loop
-	for (int r_a = 0; r_a < a_nRows; r_a++) {
-		for (int r_b = 0; r_b < b_nRows; r_b++) {
-			for (int i = a_row[r_a]; i < a_row[r_a + 1]; i++) {
-				for (int j = b_row[r_b]; j < b_row[r_b + 1]; j++) {
-					p_val[p_val_ind] = a_val[i] * b_val[j];
-					p_col[p_val_ind] = a_col[i] * b_nCols + b_col[j];
-					p_val_ind++;
+#pragma acc loop independent seq
+		for (int r_a = 0; r_a < a_nRows; r_a++) {
+#pragma acc loop independent seq
+			for (int r_b = 0; r_b < b_nRows; r_b++) {
+#pragma acc loop independent seq
+				for (int i = a_row[r_a]; i < a_row[r_a + 1]; i++) {
+#pragma acc loop independent seq
+					for (int j = b_row[r_b]; j < b_row[r_b + 1]; j++) {
+						p_val[p_val_ind] = a_val[i] * b_val[j];
+						p_col[p_val_ind] = a_col[i] * b_nCols + b_col[j];
+						p_val_ind++;
+					}
 				}
+				p_row[r_a * b_nRows + r_b + 1] = p_row[r_a * b_nRows + r_b] + (a_row[r_a + 1] - a_row[r_a]) * (b_row[r_b + 1] - b_row[r_b]);
 			}
-			p_row[r_a * b_nRows + r_b + 1] = p_row[r_a * b_nRows + r_b] + (a_row[r_a + 1] - a_row[r_a]) * (b_row[r_b + 1] - b_row[r_b]);
 		}
 	}
 
 	return prod;
 }
-*/
+
 
 #endif
 

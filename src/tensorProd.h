@@ -3,10 +3,12 @@
 
 #include <iostream>
 #include <complex>
+#include "sparseMat.h"
+
 
 typedef std::complex<double> Complex;
 typedef struct { Complex* q; int dim; } QReg;
-typedef struct { Complex* val; int* row; int* col; int nVal; int nRows; int nCols; } sparseCSR;
+//typedef struct { Complex* val; int* row; int* col; int nVal; int nRows; int nCols; } sparseCSR;
 
 QReg tensorProdDense(QReg a, QReg b) {
 	// Computes the tensor product between two quantum registers. 
@@ -45,14 +47,15 @@ QReg tensorProdDense(QReg a, QReg b) {
 
 
 sparseCSR tensorProdSparse(sparseCSR a, sparseCSR b) {
-	sparseCSR prod;
-
+	sparseCSR prod(a.nVal * b.nVal, a.nRows * b.nRows, a.nCols * b.nCols);
+        
+        /*
 	prod.nVal = a.nVal * b.nVal;
 	prod.nRows = a.nRows * b.nRows;
 	prod.nCols = a.nCols * b.nCols;
 	prod.val = new Complex[prod.nVal];
 	prod.row = new int[prod.nRows];
-	prod.col = new int[prod.nVal];
+	prod.col = new int[prod.nVal]; */ 
 
 	prod.row[0] = 0;
 

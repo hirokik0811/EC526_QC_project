@@ -29,20 +29,6 @@ public:
         col = new int[nVal];
     }
 
-    ~sparseCSR() {
-        delete[] val; delete[] row; delete[] col;
-    }
-
-    /*
-    sparseCSR copy() {
-        sparseCSR obj(nVal, nRows, nCols);
-        copy(val, val + nVal, obj.val);
-        copy(row, row + nRows + 1, obj.row);
-        copy(col, col + nVal, obj.col);
-        return obj;
-    }
-    */
-
     sparseCSR(const sparseCSR& obj) {
         // Copy constructor
         nVal = obj.nVal;
@@ -55,6 +41,24 @@ public:
         copy(obj.val, obj.val + obj.nVal, val);
         copy(obj.row, obj.row + obj.nRows + 1, row);
         copy(obj.col, obj.col + obj.nVal, col);
+    }
+
+    ~sparseCSR() {
+        // delete[] val; delete[] row; delete[] col;
+    }
+
+    /*
+    sparseCSR copy() {
+        sparseCSR obj(nVal, nRows, nCols);
+        copy(val, val + nVal, obj.val);
+        copy(row, row + nRows + 1, obj.row);
+        copy(col, col + nVal, obj.col);
+        return obj;
+    }
+    */
+
+    void freeMemory() {
+        delete[] val; delete[] row; delete[] col;
     }
 
     void print() {

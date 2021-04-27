@@ -1,19 +1,27 @@
 #ifndef TENSORPRODDENSE_H
 #define TENSORPRODDENSE_H
 
+#include <vector>
 #include <complex>
+#include <Eigen/SparseCore>
 #include "sparseMat.h"
+
+using namespace Eigen;
+using namespace std;
 
 
 typedef std::complex<double> Complex;
-typedef struct { Complex* q; int dim; } QReg;
+typedef Eigen::Triplet<Complex> T;
+typedef Eigen::SparseMatrix<Complex,RowMajor> SpMat;
+//typedef struct { Complex* q; int dim; } QReg;
 //typedef struct { Complex* val; int* row; int* col; int nVal; int nRows; int nCols; } sparseCSR;
 
+/*
 QReg tensorProdDense(QReg a, QReg b) {
-	// Computes the tensor product between two quantum registers. 
+	// Computes the tensor product between two quantum registers.
 	// A single qubit is defined as a quantum register of dimension 2.
-	// Example usage:  
-	// QReg prod = tensorProd(&qbitA, &qbitB); 
+	// Example usage:
+	// QReg prod = tensorProd(&qbitA, &qbitB);
 	// --> qbitA and qbitB are both of type QReg
 
 
@@ -34,7 +42,7 @@ QReg tensorProdDense(QReg a, QReg b) {
 
 	// Perform tensor product to populate prod
 #pragma acc data copy(prodq[0:prodN]) copyin(aq[0:aN]) copyin(bq[0:bN])
-#pragma acc parallel loop 
+#pragma acc parallel loop
 	for (int i = 0; i < aN; i++) {
 		for (int j = 0; j < bN; j++) {
 			prodq[i * bN + j] = aq[i] * bq[j];
@@ -43,31 +51,30 @@ QReg tensorProdDense(QReg a, QReg b) {
 
 	return prod;
 }
-
-/*
-sparseCSR* tensorProdSparse(sparseCSR* a, sparseCSR* b) {
-	sparseCSR* prod = new sparseCSR(a->nVal * b->nVal, a->nRows * b->nRows, a->nCols * b->nCols);
-	prod->row[0] = 0;
-
-
-
-	int p_val_ind = 0;
-	for (int r_a = 0; r_a < a->nRows; r_a++) {
-		for (int r_b = 0; r_b < b->nRows; r_b++) {
-			for (int i = a->row[r_a]; i < a->row[r_a + 1]; i++) {
-				for (int j = b->row[r_b]; j < b->row[r_b + 1]; j++) {
-					prod->val[p_val_ind] = a->val[i] * b->val[j];
-					prod->col[p_val_ind] = a->col[i] * b->nCols + b->col[j];
-					p_val_ind++;
-				}
-			}
-			prod->row[r_a * b->nRows + r_b + 1] = prod->row[r_a * b->nRows + r_b] + (a->row[r_a + 1] - a->row[r_a]) * (b->row[r_b + 1] - b->row[r_b]);
-		}
-	}
-	return prod;
-}
 */
 
+
+SpMat tensorProdSparse(SpMat A, SpMat B) {
+	std::vector<T> tripletList;
+	tripletList.reserve(A.nonZeros() * B.nonZeros());
+
+	for (int r_A = 0; r_A < A.outerSize(); ++r_A) {
+		for (int r_B = 0; r_B < B.outerSize(); ++r_B) {
+			for (SpMat::InnerIterator it_A(A, r_A); it_A; ++it_A) {
+				for (SpMat::InnerIterator it_B(B, r_B); it_B; ++it_B) {
+					tripletList.push_back(T(it_A.row() * B.outerSize() + it_B.row(), it_A.col() * B.innerSize() + it_B.col(), it_A.value() * it_B.value()));
+				}
+			}
+		}
+	}
+
+	SpMat prod(A.rows() * B.rows(), A.cols() * B.cols());
+	prod.setFromTriplets(tripletList.begin(), tripletList.end());
+	return prod;
+}
+
+
+/*
 sparseCSR* tensorProdSparse(sparseCSR* a, sparseCSR* b) {
 
 	int a_nVal = a->nVal;
@@ -121,7 +128,7 @@ sparseCSR* tensorProdSparse(sparseCSR* a, sparseCSR* b) {
 
 	return prod;
 }
-
+*/
 
 #endif
 

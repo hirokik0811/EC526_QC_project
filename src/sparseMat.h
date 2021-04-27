@@ -8,11 +8,19 @@
 using namespace std;
 
 typedef std::complex<double> Complex;
-class sparseCSR {
+typedef Eigen::SparseMatrix<Complex, RowMajor> SpMat;
+class sparseCSR
+{
 public:
-    Complex* val; int* row; int* col; int nVal; int nRows; int nCols;
-    sparseCSR() { } // empty object. user must allocate explicitly. 
-    sparseCSR(int nvals, int dim) {  // square matrix
+    Complex *val;
+    int *row;
+    int *col;
+    int nVal;
+    int nRows;
+    int nCols;
+    sparseCSR() {} // empty object. user must allocate explicitly.
+    sparseCSR(int nvals, int dim)
+    { // square matrix
         nVal = nvals;
         nRows = dim;
         nCols = dim;
@@ -20,7 +28,8 @@ public:
         row = new int[dim + 1];
         col = new int[nVal];
     }
-    sparseCSR(int nvals, int nrows, int ncols) {  // non-square matrix
+    sparseCSR(int nvals, int nrows, int ncols)
+    { // non-square matrix
         nVal = nvals;
         nRows = nrows;
         nCols = nCols;
@@ -29,7 +38,8 @@ public:
         col = new int[nVal];
     }
 
-    sparseCSR(const sparseCSR& obj) {
+    sparseCSR(const sparseCSR &obj)
+    {
         // Copy constructor
         nVal = obj.nVal;
         nRows = obj.nRows;
@@ -43,7 +53,8 @@ public:
         copy(obj.col, obj.col + obj.nVal, col);
     }
 
-    ~sparseCSR() {
+    ~sparseCSR()
+    {
         // delete[] val; delete[] row; delete[] col;
     }
 
@@ -57,22 +68,29 @@ public:
     }
     */
 
-    void freeMemory() {
-        delete[] val; delete[] row; delete[] col;
+    void freeMemory()
+    {
+        delete[] val;
+        delete[] row;
+        delete[] col;
     }
 
-    void print() {
+    void print()
+    {
         // Prints the val, row, and col arrays
         cout << "val = ";
-        for (int i = 0; i < nVal; i++) cout << val[i] << ", ";
+        for (int i = 0; i < nVal; i++)
+            cout << val[i] << ", ";
         cout << "\n";
 
         cout << "row = ";
-        for (int i = 0; i < nRows + 1; i++) cout << row[i] << ", ";
+        for (int i = 0; i < nRows + 1; i++)
+            cout << row[i] << ", ";
         cout << "\n";
 
         cout << "col = ";
-        for (int i = 0; i < nVal; i++) cout << col[i] << ", ";
+        for (int i = 0; i < nVal; i++)
+            cout << col[i] << ", ";
         cout << "\n";
     }
 };

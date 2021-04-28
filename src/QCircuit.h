@@ -36,6 +36,7 @@ class QCircuit {
 private:
   int nQubits, nGates;
   opList gateList; 
+  int idxComputed; 
   SpMat U; // matrix representation of the circuit
   bool isUComputed; // to avoid computing the matrix twice
 public: 
@@ -43,7 +44,9 @@ public:
     if (nQReg >= 32) { cout << "QCircuit support only <32 qubits. " << endl; return;}
     nQubits = nQReg;
     nGates = 0;
-    isUComputed = false;
+    idxComputed = -1; 
+    U = _identityMat((int)pow(2, nQubits)); 
+    isUComputed = true;
   }
 
   ~QCircuit() {
@@ -51,7 +54,6 @@ public:
       delete[] gateList.supports[i]; delete[] gateList.angles[i]; 
     }
   }
-
 
   // Add a general U1 gate = RZ(beta)*RY(gamma)*RZ(delta)
   void addU1(int trg, double beta, double gamma, double delta) {
@@ -62,6 +64,7 @@ public:
     double* angles = new double[3]; angles[0] = beta; angles[1] = gamma; angles[2] = delta; 
     gateList.angles.push_back(angles); 
     nGates++; 
+    isUComputed = false;
   }
 
   // Add a trivial phase gate = exp(i*alpha)
@@ -73,6 +76,7 @@ public:
     double* angles = new double[1]; angles[0] = alpha; 
     gateList.angles.push_back(angles); 
     nGates++; 
+    isUComputed = false;
   }
 
   // Add a Hadamard gate = 1/sqrt{2}*{{1, 1}, {1, -1}}
@@ -84,6 +88,7 @@ public:
     double* angles = new double[0]; 
     gateList.angles.push_back(angles); 
     nGates++; 
+    isUComputed = false;
   }
 
 
@@ -96,6 +101,7 @@ public:
     double* angles = new double[0]; 
     gateList.angles.push_back(angles); 
     nGates++; 
+    isUComputed = false;
   }
 
   // Add an Sdag gate = {{1, 0}, {0, -i}} = RZ(-pi/2)
@@ -107,6 +113,7 @@ public:
     double* angles = new double[0]; 
     gateList.angles.push_back(angles); 
     nGates++; 
+    isUComputed = false;
   }
 
 
@@ -120,6 +127,7 @@ public:
     gateList.angles.push_back(angles); 
     gateList.angles.push_back(angles); 
     nGates++; 
+    isUComputed = false;
   }
 
   // Add a Tdag gate = {{1, 0}, {0, exp(-i*pi/4)}} = RZ(-pi/4)
@@ -131,6 +139,7 @@ public:
     double* angles = new double[0]; 
     gateList.angles.push_back(angles); 
     nGates++; 
+    isUComputed = false;
   }
 
   // Add an X gate = {{0, 1}, {1, 0}} = sigma_1
@@ -142,6 +151,7 @@ public:
     double* angles = new double[0]; 
     gateList.angles.push_back(angles); 
     nGates++; 
+    isUComputed = false;
   }
 
   // Add a Y gate = {{0, -i}, {i, 0}} = sigma_2
@@ -153,6 +163,7 @@ public:
     double* angles = new double[0]; 
     gateList.angles.push_back(angles); 
     nGates++; 
+    isUComputed = false;
   }
 
   // Add a Z gate = {{1, 0}, {0, -1}} = sigma_3
@@ -164,6 +175,7 @@ public:
     double* angles = new double[0]; 
     gateList.angles.push_back(angles); 
     nGates++; 
+    isUComputed = false;
   }
 
   // Add an RX gate = {{cos(theta/2), -i*sin(theta/2)}, {-i*sin(theta/2), cos(theta/2)}}
@@ -175,6 +187,7 @@ public:
     double* angles = new double[1]; angles[0] = theta;
     gateList.angles.push_back(angles); 
     nGates++; 
+    isUComputed = false;
   }
 
   // Add an RY gate = {{cos(theta/2), -sin(theta/2)}, {sin(theta/2), cos(theta/2)}}
@@ -186,6 +199,7 @@ public:
     double* angles = new double[1]; angles[0] = theta;
     gateList.angles.push_back(angles); 
     nGates++; 
+    isUComputed = false;
   }
 
   // Add an RZ gate = {{1, 0}, {0, exp(i*theta)}}
@@ -197,6 +211,7 @@ public:
     double* angles = new double[1]; angles[0] = theta;
     gateList.angles.push_back(angles); 
     nGates++; 
+    isUComputed = false;
   }
 
 
@@ -210,6 +225,7 @@ public:
     double* angles = new double[0]; 
     gateList.angles.push_back(angles); 
     nGates++; 
+    isUComputed = false;
   }
 
   // Construct an identity matrix with dim x dim dimensions
@@ -314,7 +330,6 @@ public:
       
       SpMat oneGate(2, 2);
       oneGate.setFromTriplets(tripletList.begin(), tripletList.end());
-      cout << MatrixXC(oneGate) << endl;
 
       SpMat right; 
       if (trg != 0) { 
@@ -333,20 +348,39 @@ public:
 
   // Compute the matrix representation of the circuit. 
   void compMatrix() {
-    int d = (int)pow(2, nQubits); // dimension of the matrix rep
-    sparseCSR matRep(); 
-    for (int i = 0; i < nGates; ++i) {
-      SpMat gate;
-      gate = _gateMat(&(gateList.ops[i]), gateList.supports[i], gateList.angles[i]); 
+    if (!isUComputed) {
+      int d = (int)pow(2, nQubits); // dimension of the matrix rep 
+      for (int i = idxComputed+1; i < nGates; ++i) {
+        SpMat gate;
+        gate = _gateMat(&(gateList.ops[i]), gateList.supports[i], gateList.angles[i]); 
+        
+        if (i == 0) { U = gate; } 
+        else { U = matrixMul(U, gate); }
 
-      // WRITE CODE FOR MULTIPLICATION 
-
+      }
+      idxComputed = nGates; 
+      isUComputed = true; 
     }
   }
 
   // Apply gates to the state vector
-  void applyGates(Complex* state){
+  SpMat outputState(SpMat inputState){
+    if (!isUComputed) { compMatrix(); }
+    return matrixMul(U, inputState); 
   }
+  
+  // Compute the 1-qubit expectation value <in|U^dag Obs_i U|in>
+  // allowed observables are sigmas: obs = "X", "Y", "Z"
+  /******* Needs Complex conjugation ******* 
+  double expVal(string* obs, int trg, SpMat inputState) {
+    int * sup = new int[1]; sup[0] = trg; 
+    double * ang = new int[0];
+    SpMat observable = _gateMat(obs, trg, ang); 
+    delete[] sup; delete[] ang; 
+    SpMat outSt = outputState(inputState); 
+    SpMat outStDag = ////////////////////
+    }*/
+  
   
   // Return the number of the qubits. 
   int getNQubits(){
@@ -360,6 +394,13 @@ public:
   // Return the list of the gates. 
   opList getGateList(){
     return gateList;
+  }
+  
+  SpMat getUSparse() { 
+    return U;
+  } 
+  MatrixXC getUDense() { 
+    return MatrixXC(U); 
   }
 
 };

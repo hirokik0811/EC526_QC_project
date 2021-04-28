@@ -248,7 +248,6 @@ public:
 
       // the target 1-qubit gate
       vector<T> tripletList; // the non-zero values of the 1-qubit gate
-      cout << "Length of the value list: " << tripletList.size() << endl;
 
       switch (str2int((*opName).c_str())) {
       case str2int("U1") :
@@ -256,78 +255,64 @@ public:
         tripletList.push_back(T(0, 1, -exp(I*(-angles[0]/2.0+angles[1]/2.0))*sin(angles[2]/2.0)));
         tripletList.push_back(T(1, 0, exp(I*(angles[0]/2.0-angles[1]/2.0))*sin(angles[2]/2.0)));
         tripletList.push_back(T(1, 1, exp(I*(angles[0]/2.0+angles[1]/2.0))*cos(angles[2]/2.0)));
-        cout << "U: Length of the value list: " << tripletList.size() << endl;
         break;
       case str2int("Phase") :  
         tripletList.push_back(T(0, 0, exp(I*angles[0])));
         tripletList.push_back(T(1, 1, exp(I*angles[0])));
-        cout << "Phase: Length of the value list: " << tripletList.size() << endl;
         break;
       case str2int("H") : 
         tripletList.push_back(T(0, 0, 1.0/sqrt(2.0)));
         tripletList.push_back(T(0, 1, 1.0/sqrt(2.0)));
         tripletList.push_back(T(1, 0, 1.0/sqrt(2.0)));
         tripletList.push_back(T(1, 1, -1.0/sqrt(2.0)));
-        cout << "H: Length of the value list: " << tripletList.size() << endl;
         break;
       case str2int("S") : 
         tripletList.push_back(T(0, 0, 1.0));
         tripletList.push_back(T(1, 1, I));
-        cout << "S: Length of the value list: " << tripletList.size() << endl;
         break;
       case str2int("Sdag") : 
         tripletList.push_back(T(0, 0, 1.0));
         tripletList.push_back(T(1, 1, -I));
-        cout << "Sdag: Length of the value list: " << tripletList.size() << endl;
         break;
       case str2int("T") : 
         tripletList.push_back(T(0, 0, 1.0));
         tripletList.push_back(T(1, 1, exp(I*PI/4.0)));
-        cout << "T: Length of the value list: " << tripletList.size() << endl;
         break;
       case str2int("Tdag") : 
         tripletList.push_back(T(0, 0, 1.0));
         tripletList.push_back(T(1, 1, exp(-I*PI/4.0)));
-        cout << "Tdag: Length of the value list: " << tripletList.size() << endl;
         break;
       case str2int("X") : 
         tripletList.push_back(T(0, 1, 1.0));
         tripletList.push_back(T(1, 0, 1.0));
-        cout << "X: Length of the value list: " << tripletList.size() << endl;
         break;
       case str2int("Y") : 
         tripletList.push_back(T(0, 1, -I));
         tripletList.push_back(T(1, 0, I));
-        cout << "Y: Length of the value list: " << tripletList.size() << endl;
         break;
       case str2int("Z") : 
         tripletList.push_back(T(0, 0, 1.0));
         tripletList.push_back(T(1, 1, -1.0));
-        cout << "Z: Length of the value list: " << tripletList.size() << endl;
         break;
       case str2int("RX") :
         tripletList.push_back(T(0, 0, cos(angles[0]/2.0)));
         tripletList.push_back(T(0, 1, -I*sin(angles[0]/2.0)));
         tripletList.push_back(T(1, 0, -I*sin(angles[0]/2.0)));
         tripletList.push_back(T(1, 1, cos(angles[0]/2.0)));
-        cout << "RX: Length of the value list: " << tripletList.size() << endl;
         break;
       case str2int("RY") :
         tripletList.push_back(T(0, 0, cos(angles[0]/2.0)));
         tripletList.push_back(T(0, 1, -sin(angles[0]/2.0)));
         tripletList.push_back(T(1, 0, sin(angles[0]/2.0)));
         tripletList.push_back(T(1, 1, cos(angles[0]/2.0)));
-        cout << "RY: Length of the value list: " << tripletList.size() << endl;
         break;
       case str2int("RZ") : 
         tripletList.push_back(T(0, 0, 1.0));
         tripletList.push_back(T(1, 1, exp(I*angles[0]/2.0)));
-        cout << "RZ: Length of the value list: " << tripletList.size() << endl;
         break;
       }
       
       SpMat oneGate(2, 2);
-      cout << "Length of the value list: " << tripletList.size() << endl;
       oneGate.setFromTriplets(tripletList.begin(), tripletList.end());
       cout << MatrixXC(oneGate) << endl;
 

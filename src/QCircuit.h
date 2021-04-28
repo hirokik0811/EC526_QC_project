@@ -8,7 +8,7 @@
 #include <string>
 #include <bitset>  
 
-#include "sparseMat.h"
+//#include "sparseMat.h"
 #include "tensorProd.h"
 #include "matMul.h"
 
@@ -20,8 +20,9 @@ using namespace std;
 #define  I  Complex(0.0, 1.0)
 #define  Nfft 16
 typedef complex <double> Complex;
-//typedef struct{Complex* val; int* row; int* col; int nVal;} sparseCSR; 
 typedef struct{vector<string> ops; vector<int*> supports; vector<double*> angles;} opList;
+
+typedef Matrix<Complex, Dynamic, Dynamic> MatrixXC; // the complex dense matrix for printing and debugging 
 
 
 // For converting the gate name to integer allowing one to use switch for them
@@ -35,7 +36,7 @@ class QCircuit {
 private:
   int nQubits, nGates;
   opList gateList; 
-  sparseCSR U; // matrix representation of the circuit
+  SpMat U; // matrix representation of the circuit
   bool isUComputed; // to avoid computing the matrix twice
 public: 
   QCircuit(int nQReg) {
@@ -45,7 +46,11 @@ public:
     isUComputed = false;
   }
 
-  ~QCircuit() {}
+  ~QCircuit() {
+    for (int i = 0; i < nGates; ++i) {
+      delete[] gateList.supports[i]; delete[] gateList.angles[i]; 
+    }
+  }
 
 
   // Add a general U1 gate = RZ(beta)*RY(gamma)*RZ(delta)
@@ -206,190 +211,139 @@ public:
     gateList.angles.push_back(angles); 
     nGates++; 
   }
+
+  // Construct an identity matrix with dim x dim dimensions
+  SpMat _identityMat(int dim) {
+    vector<T> tripletList; // the non-zero values
+    for (int i = 0; i < dim; ++i) { tripletList.push_back(T(i, i, 1.0)); }
+    SpMat id(dim, dim); 
+    id.setFromTriplets(tripletList.begin(), tripletList.end());
+    return id; 
+  }
   
   // Compute the matrix representation of one gate
-  sparseCSR*  _gateMat(string* opName, int* supports, double* angles) {
+  SpMat _gateMat(string* opName, int* supports, double* angles) {
     int d = (int)pow(2, nQubits); // dimension of the matrix rep
-    sparseCSR gate; 
+    SpMat gate(d, d); 
     // 2-qubit gate cases
     if (*opName == "CNOT") {
       int ctr = supports[0], trg = supports[1]; 
-      Complex* val = new Complex[d]; // the values of the CNOT matrix
-      int* row = new int[d+1]; 
-      int* col = new int[d]; 
+      vector<T> tripletList; // the non-zero values of the CNOT matrix
       for (int i = 0; i < d; ++i) {
-        val[i] = 1.0; row[i] = i; 
         string bini = bitset<32>(i).to_string(); 
-        if (bini[ctr] == '1' && bini[trg] == '0') { col[i] = i + (int)pow(2, trg); }
-        else if (bini[ctr] == '1' && bini[trg] == '1') { col[i] = i-(int)pow(2, trg); }
-        else { col[i] = i; }
+        if (bini[ctr] == '1' && bini[trg] == '0') { tripletList.push_back(T(i, i + (int)pow(2, trg), 1.0)); }
+        else if (bini[ctr] == '1' && bini[trg] == '1') { tripletList.push_back(T(i, i-(int)pow(2, trg), 1.0)); }
+        else { tripletList.push_back(T(i, i, 1.0)); }
       }
-      row[d] = d; 
-      gate.val = val;  gate.row = row;  gate.col = col; 
-      gate.nVal = d; gate.nRows = d; gate.nCols = d; 
+      gate.setFromTriplets(tripletList.begin(), tripletList.end());
     }
     // 1-qubit gate cases
     else {
       int trg = supports[0];
 
       // identities supporting other qubits
-      int firstIdDim = (int)pow(2, trg-1), secondIdDim = (int)pow(2, nQubits-trg-1); 
-      sparseCSR firstId(firstIdDim, firstIdDim), secondId(secondIdDim, secondIdDim); 
-
-      for (int i = 0; i < firstIdDim; ++i) { firstId.val[i] = 1.0; firstId.col[i] = i; firstId.row[i] = i; } 
-      for (int i = 0; i < secondIdDim; ++i) { secondId.val[i] = 1.0; secondId.col[i] = i; secondId.row[i] = i; } 
-      firstId.row[firstIdDim] = firstIdDim; secondId.row[secondIdDim] = secondIdDim; 
+      int firstIdDim = (int)pow(2, trg), secondIdDim = (int)pow(2, nQubits-trg-1); 
+      SpMat firstId = _identityMat(firstIdDim), secondId = _identityMat(secondIdDim); 
+      
 
       // the target 1-qubit gate
-      sparseCSR oneGate; 
-      Complex* val; 
-      int* row; 
-      int* col;
+      vector<T> tripletList; // the non-zero values of the 1-qubit gate
+      cout << "Length of the value list: " << tripletList.size() << endl;
 
       switch (str2int((*opName).c_str())) {
       case str2int("U1") :
-        val = new Complex[4]; 
-        row = new int[3]; 
-        col = new int[4]; 
-        val[0] = exp(I*(-angles[0]/2.0-angles[1]/2.0))*cos(angles[2]/2.0);
-        val[1] = -exp(I*(-angles[0]/2.0+angles[1]/2.0))*sin(angles[2]/2.0);
-        val[2] = exp(I*(angles[0]/2.0-angles[1]/2.0))*sin(angles[2]/2.0);
-        val[3] = exp(I*(angles[0]/2.0+angles[1]/2.0))*cos(angles[2]/2.0);
-        col[0] = 0; col[1] = 1; col[2] = 0; col[3] = 1; 
-        row[0] = 0; row[1] = 2; row[2] = 4; 
-        oneGate.nVal = 4;
-      case str2int("Phase") : 
-        val = new Complex[2]; 
-        row = new int[3]; 
-        col = new int[2]; 
-        val[0] = exp(I*angles[0]);
-        val[1] = exp(I*angles[0]);
-        col[0] = 0; col[1] = 1;
-        row[0] = 0; row[1] = 1; row[2] = 2; 
-        oneGate.nVal = 2;
+        tripletList.push_back(T(0, 0, exp(I*(-angles[0]/2.0-angles[1]/2.0))*cos(angles[2]/2.0)));
+        tripletList.push_back(T(0, 1, -exp(I*(-angles[0]/2.0+angles[1]/2.0))*sin(angles[2]/2.0)));
+        tripletList.push_back(T(1, 0, exp(I*(angles[0]/2.0-angles[1]/2.0))*sin(angles[2]/2.0)));
+        tripletList.push_back(T(1, 1, exp(I*(angles[0]/2.0+angles[1]/2.0))*cos(angles[2]/2.0)));
+        cout << "U: Length of the value list: " << tripletList.size() << endl;
+        break;
+      case str2int("Phase") :  
+        tripletList.push_back(T(0, 0, exp(I*angles[0])));
+        tripletList.push_back(T(1, 1, exp(I*angles[0])));
+        cout << "Phase: Length of the value list: " << tripletList.size() << endl;
+        break;
       case str2int("H") : 
-        val = new Complex[2]; 
-        row = new int[3]; 
-        col = new int[2]; 
-        val[0] = 1/sqrt(2.0);
-        val[1] = 1/sqrt(2.0);
-        val[2] = 1/sqrt(2.0);
-        val[3] = -1/sqrt(2.0);
-        col[0] = 0; col[1] = 1; col[2] = 0; col[3] = 1;
-        row[0] = 0; row[1] = 2; row[2] = 4; 
-        oneGate.nVal = 4;
+        tripletList.push_back(T(0, 0, 1.0/sqrt(2.0)));
+        tripletList.push_back(T(0, 1, 1.0/sqrt(2.0)));
+        tripletList.push_back(T(1, 0, 1.0/sqrt(2.0)));
+        tripletList.push_back(T(1, 1, -1.0/sqrt(2.0)));
+        cout << "H: Length of the value list: " << tripletList.size() << endl;
+        break;
       case str2int("S") : 
-        val = new Complex[2]; 
-        row = new int[3]; 
-        col = new int[2]; 
-        val[0] = 1.0;
-        val[1] = I;
-        col[0] = 0; col[1] = 1;
-        row[0] = 0; row[1] = 1; row[2] = 2; 
-        oneGate.nVal = 2;
+        tripletList.push_back(T(0, 0, 1.0));
+        tripletList.push_back(T(1, 1, I));
+        cout << "S: Length of the value list: " << tripletList.size() << endl;
+        break;
       case str2int("Sdag") : 
-        val = new Complex[2]; 
-        row = new int[3]; 
-        col = new int[2]; 
-        val[0] = 1.0;
-        val[1] = -I;
-        col[0] = 0; col[1] = 1;
-        row[0] = 0; row[1] = 1; row[2] = 2; 
-        oneGate.nVal = 2;
+        tripletList.push_back(T(0, 0, 1.0));
+        tripletList.push_back(T(1, 1, -I));
+        cout << "Sdag: Length of the value list: " << tripletList.size() << endl;
+        break;
       case str2int("T") : 
-        val = new Complex[2]; 
-        row = new int[3]; 
-        col = new int[2]; 
-        val[0] = 1.0;
-        val[1] = exp(I*PI/4.0);
-        col[0] = 0; col[1] = 1;
-        row[0] = 0; row[1] = 1; row[2] = 2; 
-        oneGate.nVal = 2;
+        tripletList.push_back(T(0, 0, 1.0));
+        tripletList.push_back(T(1, 1, exp(I*PI/4.0)));
+        cout << "T: Length of the value list: " << tripletList.size() << endl;
+        break;
       case str2int("Tdag") : 
-        val = new Complex[2]; 
-        row = new int[3]; 
-        col = new int[2]; 
-        val[0] = 1.0;
-        val[1] = exp(-I*PI/4.0);
-        col[0] = 0; col[1] = 1;
-        row[0] = 0; row[1] = 1; row[2] = 2; 
+        tripletList.push_back(T(0, 0, 1.0));
+        tripletList.push_back(T(1, 1, exp(-I*PI/4.0)));
+        cout << "Tdag: Length of the value list: " << tripletList.size() << endl;
+        break;
       case str2int("X") : 
-        val = new Complex[2]; 
-        row = new int[3]; 
-        col = new int[2]; 
-        val[0] = 1.0;
-        val[1] = 1.0;
-        col[0] = 1; col[1] = 0;
-        row[0] = 0; row[1] = 1; row[2] = 2; 
-        oneGate.nVal = 2;
+        tripletList.push_back(T(0, 1, 1.0));
+        tripletList.push_back(T(1, 0, 1.0));
+        cout << "X: Length of the value list: " << tripletList.size() << endl;
+        break;
       case str2int("Y") : 
-        val = new Complex[2]; 
-        row = new int[3]; 
-        col = new int[2]; 
-        val[0] = -I;
-        val[1] = I;
-        col[0] = 1; col[1] = 0;
-        row[0] = 0; row[1] = 1; row[2] = 2; 
-        oneGate.nVal = 2;
+        tripletList.push_back(T(0, 1, -I));
+        tripletList.push_back(T(1, 0, I));
+        cout << "Y: Length of the value list: " << tripletList.size() << endl;
+        break;
       case str2int("Z") : 
-        val = new Complex[2]; 
-        row = new int[3]; 
-        col = new int[2]; 
-        val[0] = 1.0;
-        val[1] = -1.0;
-        col[0] = 0; col[1] = 1;
-        row[0] = 0; row[1] = 1; row[2] = 2; 
-        oneGate.nVal = 2;
+        tripletList.push_back(T(0, 0, 1.0));
+        tripletList.push_back(T(1, 1, -1.0));
+        cout << "Z: Length of the value list: " << tripletList.size() << endl;
+        break;
       case str2int("RX") :
-        val = new Complex[4]; 
-        row = new int[3]; 
-        col = new int[4]; 
-        val[0] = cos(angles[0]/2.0);
-        val[1] = -I*sin(angles[0]/2.0);
-        val[2] = cos(angles[0]/2.0);
-        val[3] = -I*sin(angles[0]/2.0);
-        col[0] = 0; col[1] = 1; col[2] = 0; col[3] = 1; 
-        row[0] = 0; row[1] = 2; row[2] = 4; 
-        oneGate.nVal = 2;
+        tripletList.push_back(T(0, 0, cos(angles[0]/2.0)));
+        tripletList.push_back(T(0, 1, -I*sin(angles[0]/2.0)));
+        tripletList.push_back(T(1, 0, -I*sin(angles[0]/2.0)));
+        tripletList.push_back(T(1, 1, cos(angles[0]/2.0)));
+        cout << "RX: Length of the value list: " << tripletList.size() << endl;
+        break;
       case str2int("RY") :
-        val = new Complex[4]; 
-        row = new int[3]; 
-        col = new int[4]; 
-        val[0] = cos(angles[0]/2.0);
-        val[1] = sin(angles[0]/2.0);
-        val[2] = sin(angles[0]/2.0);
-        val[3] = cos(angles[0]/2.0);
-        col[0] = 0; col[1] = 1; col[2] = 0; col[3] = 1; 
-        row[0] = 0; row[1] = 2; row[2] = 4; 
-        oneGate.nVal = 2;
+        tripletList.push_back(T(0, 0, cos(angles[0]/2.0)));
+        tripletList.push_back(T(0, 1, -sin(angles[0]/2.0)));
+        tripletList.push_back(T(1, 0, sin(angles[0]/2.0)));
+        tripletList.push_back(T(1, 1, cos(angles[0]/2.0)));
+        cout << "RY: Length of the value list: " << tripletList.size() << endl;
+        break;
       case str2int("RZ") : 
-        val = new Complex[4]; 
-        row = new int[3]; 
-        col = new int[4]; 
-        val[0] = 1.0;
-        val[1] = exp(I*angles[0]/2.0);
-        col[0] = 0; col[1] = 1;
-        row[0] = 0; row[1] = 1; row[2] = 2; 
-        oneGate.nVal = 2;
+        tripletList.push_back(T(0, 0, 1.0));
+        tripletList.push_back(T(1, 1, exp(I*angles[0]/2.0)));
+        cout << "RZ: Length of the value list: " << tripletList.size() << endl;
+        break;
       }
-      oneGate.val = val;  oneGate.row = row;  oneGate.col = col; 
-      oneGate.nRows = 2;  oneGate.nCols = 2; 
       
+      SpMat oneGate(2, 2);
+      cout << "Length of the value list: " << tripletList.size() << endl;
+      oneGate.setFromTriplets(tripletList.begin(), tripletList.end());
+      cout << MatrixXC(oneGate) << endl;
+
+      SpMat right; 
       if (trg != 0) { 
-        gate = *tensorProdSparse(&oneGate, &firstId); 
+        right = tensorProdSparse(oneGate, firstId);
       }  else {
-        sparseCSR temp(oneGate); 
-        gate = temp; 
-      } 
-      if (trg != nQubits-1) { 
-        sparseCSR prevRes = gate; 
-        gate = *tensorProdSparse(&secondId, &gate); 
-        prevRes.freeMemory(); 
+        right = oneGate; 
       }
-      oneGate.freeMemory();  firstId.freeMemory();  secondId.freeMemory();
-     
+      if (trg != nQubits-1) { 
+        gate = tensorProdSparse(secondId, right); 
+      } else {
+        gate = right; 
+      }
     }
-    return &gate; 
+    return gate; 
   }
 
   // Compute the matrix representation of the circuit. 
@@ -397,7 +351,7 @@ public:
     int d = (int)pow(2, nQubits); // dimension of the matrix rep
     sparseCSR matRep(); 
     for (int i = 0; i < nGates; ++i) {
-      sparseCSR* gate = new sparseCSR;
+      SpMat gate;
       gate = _gateMat(&(gateList.ops[i]), gateList.supports[i], gateList.angles[i]); 
 
       // WRITE CODE FOR MULTIPLICATION 

@@ -4,7 +4,7 @@
 #include <vector>
 #include <complex>
 #include <Eigen/SparseCore>
-#include "sparseMat.h"
+//#include "sparseMat.h"
 
 using namespace Eigen;
 using namespace std;

@@ -391,17 +391,16 @@ public:
     return (innProd.coeff(0, 0)).real(); 
   }
 
-  // Simulate the measurement results of the computational basis with finite #samplings
-  int* ZBasisSampling(int nSamples, SpMat inputState) {
+  // Simulate the measurement results of the computational basis with finite #samplings. Store the sampling result to countsPtr. 
+  void ZBasisSampling(int* countsPtr, int nSamples, SpMat inputState) {
     SpMat outSt = outputState(inputState); 
     double* dist = new double[d]; 
     for (int i = 0; i < d; ++i) { 
       dist[i] = (outSt.coeff(i, 0)*conj(outSt.coeff(i, 0))).real();
     }
-
-    int* counts = new int[d]; 
+    
     for (int i = 0; i < d; ++i) { 
-      counts[i] = 0; 
+      countsPtr[i] = 0; 
     }
 
     // For random # generation
@@ -413,13 +412,12 @@ public:
       for (int j = 0; j < d; ++j) { 
          smp -= dist[j]; 
          if (smp <= 0.0) {
-           counts[j]++; 
+           countsPtr[j]++; 
            break; 
          }
       }
     }
     delete[] dist; 
-    return counts; 
   }
   
   

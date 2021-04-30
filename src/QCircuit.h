@@ -138,7 +138,7 @@ private:
         break;
       case str2int("RZ") : 
         tripletList.push_back(T(0, 0, 1.0));
-        tripletList.push_back(T(1, 1, exp(I*angles[0]/2.0)));
+        tripletList.push_back(T(1, 1, exp(I*angles[0])));
         break;
       }
       

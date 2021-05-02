@@ -1,4 +1,4 @@
-EIGEN = ../include/eigen-master/
+EIGEN = ../include/eigen/
 VPATH = ../src/
 
 CCX = g++

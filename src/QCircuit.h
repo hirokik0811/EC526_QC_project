@@ -172,7 +172,7 @@ private:
         else { U = matrixMul(gate, U); }
 
       }
-      idxComputed = nGates; 
+      idxComputed = nGates-1; 
       isUComputed = true; 
     }
   }

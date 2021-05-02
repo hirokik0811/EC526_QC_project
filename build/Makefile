@@ -1,4 +1,4 @@
-EIGEN = ../include/eigen/
+EIGEN = ../include/eigen-master/
 VPATH = ../src/
 
 CCX = g++
@@ -21,17 +21,17 @@ ALL_SOURCES = Makefile $(C_SOURCES) $(MY_INCLUDES)
 
 DATA_FILES = time_evolution_TFIM.txt Benchmark.txt
 #============================================================
-all: $(TARGET1) $(TARGET2) $(TARGET3) 
+all: $(TARGET1) $(TARGET2) $(TARGET3)
 
 .o:.cpp	$(MY_INCLUDES)
 	$(CCX)  -c  $(CXXFLAGS) $<
 
 $(TARGET1) :   $(C_OBJS1)
 	$(CCX) $(CXXFLAGS)  $^ -o $@
- 
+
 $(TARGET2) :   $(C_OBJS2)
 	$(CCX) $(CXXFLAGS)  $^ -o $@
- 
+
 $(TARGET3) :   $(C_OBJS3)
 	$(CCX) $(CXXFLAGS)  $^ -o $@
 
